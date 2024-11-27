@@ -1,25 +1,9 @@
-# File: carla_camera.py
-
 import carla
 import time
 import threading
 from collections import namedtuple
 
-# Replace dataclass with namedtuple or regular class
 CameraTransform = namedtuple('CameraTransform', ['x_offset', 'y_offset', 'z_offset', 'rotation'])
-
-# Alternative using regular class if you need mutability:
-'''
-class CameraTransform:
-    def __init__(self, x_offset, y_offset, z_offset, rotation):
-        self.x_offset = x_offset
-        self.y_offset = y_offset
-        self.z_offset = z_offset
-        self.rotation = rotation
-
-    def __repr__(self):
-        return f"CameraTransform(x_offset={self.x_offset}, y_offset={self.y_offset}, z_offset={self.z_offset}, rotation={self.rotation})"
-'''
 
 class CameraManager:
     def __init__(self):
@@ -41,49 +25,76 @@ class CameraManager:
         with self._config_lock:
             return self._camera_config
     
-    def set_rear_view(self):
+    def set_back_right_diagonal(self):
         with self._config_lock:
             self._camera_config = CameraTransform(
-                x_offset=-4.0,
-                y_offset=0.0,
-                z_offset=2.5,
-                rotation=carla.Rotation(0, 0, 0)
+                x_offset=-4.0,  # Behind vehicle
+                y_offset=-4.0,  # Left side
+                z_offset=2.5,   # Height
+                rotation=carla.Rotation(0, 45, 0)  # Look right
             )
     
-    def set_front_view(self):
+    def set_back_left_diagonal(self):
         with self._config_lock:
             self._camera_config = CameraTransform(
-                x_offset=1.5,
-                y_offset=0.0,
-                z_offset=1.5,
-                rotation=carla.Rotation(0, 180, 0)
+                x_offset=-4.0,  # Behind vehicle
+                y_offset=4.0,   # Right side
+                z_offset=2.5,   # Height
+                rotation=carla.Rotation(0, -45, 0)  # Look left
+            )
+    
+    def set_front_right_diagonal(self):
+        with self._config_lock:
+            self._camera_config = CameraTransform(
+                x_offset=4.0,   # Front of vehicle
+                y_offset=-4.0,  # Left side
+                z_offset=2.5,   # Height
+                rotation=carla.Rotation(0, 135, 0)  # Look right
+            )
+    
+    def set_front_left_diagonal(self):
+        with self._config_lock:
+            self._camera_config = CameraTransform(
+                x_offset=4.0,   # Front of vehicle
+                y_offset=4.0,   # Right side
+                z_offset=2.5,   # Height
+                rotation=carla.Rotation(0, -135, 0)  # Look left
             )
     
     def set_right_profile(self):
         with self._config_lock:
             self._camera_config = CameraTransform(
-                x_offset=0.0,
-                y_offset=4.0,
-                z_offset=2.5,
-                rotation=carla.Rotation(0, 90, 0)
+                x_offset=0.0,   # No forward/back offset
+                y_offset=4.0,   # Offset to right side
+                z_offset=2.0,   # Standard height
+                rotation=carla.Rotation(0, -90, 0)  # Face left to look at vehicle
             )
     
     def set_left_profile(self):
         with self._config_lock:
             self._camera_config = CameraTransform(
-                x_offset=0.0,
-                y_offset=-4.0,
-                z_offset=2.5,
-                rotation=carla.Rotation(0, -90, 0)
+                x_offset=0.0,   # No forward/back offset
+                y_offset=-4.0,  # Offset to left side
+                z_offset=2.0,   # Standard height
+                rotation=carla.Rotation(0, 90, 0)  # Face right to look at vehicle
             )
     
-    def set_top_down(self):
+    def set_back_view_tilted(self):
         with self._config_lock:
             self._camera_config = CameraTransform(
-                x_offset=0.0,
+                x_offset=-4.0,  # Behind vehicle
                 y_offset=0.0,
-                z_offset=8.0,
-                rotation=carla.Rotation(-90, 0, 0)
+                z_offset=2.5,
+                rotation=carla.Rotation(-30, 0, 0)  # 30 degrees down tilt
+            )
+    
+    def set_front_view_tilted(self):
+        with self._config_lock:
+            self._camera_config = CameraTransform(
+                x_offset=4.0,   # Front of vehicle
+                y_offset=0.0,
+                z_offset=2.5,
+                rotation=carla.Rotation(-30, 180, 0)  # 30 degrees down tilt, 180 to face vehicle
             )
     
     def set_custom_view(self, x, y, z, pitch=0, yaw=0, roll=0):
@@ -102,33 +113,26 @@ class CameraManager:
                 with self._config_lock:
                     config = self._camera_config
                 
-                # Get vehicle's transform
                 vehicle_transform = vehicle.get_transform()
-                
-                # Create relative location based on current camera configuration
                 relative_location = carla.Location(
                     x=config.x_offset,
                     y=config.y_offset,
                     z=config.z_offset
                 )
                 
-                # Get world location for camera
                 camera_world_loc = vehicle_transform.transform(relative_location)
-                
-                # Combine vehicle's rotation with camera rotation offset
                 camera_rotation = carla.Rotation(
                     pitch=vehicle_transform.rotation.pitch + config.rotation.pitch,
                     yaw=vehicle_transform.rotation.yaw + config.rotation.yaw,
                     roll=vehicle_transform.rotation.roll + config.rotation.roll
                 )
                 
-                # Create and set the new transform
                 transform = carla.Transform(camera_world_loc, camera_rotation)
                 spectator.set_transform(transform)
                 
                 time.sleep(0.01)
             except Exception as e:
-                print("Camera update error: {}".format(e))  # Python 3.6 string formatting
+                print("Camera update error: {}".format(e))
                 break
     
     def start_following(self, world, vehicle, spectator):
