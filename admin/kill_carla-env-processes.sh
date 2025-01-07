@@ -1,0 +1,1 @@
+sudo ps aux | grep 'carla-env' | grep -v grep | awk '{print $2}' | xargs -r kill -9
