@@ -186,7 +186,7 @@ def drive_figure_eight(world, vehicle, waypoints, target_speed=10):
         for i, wp in enumerate(waypoints):
             print(f"Current target waypoint {i + 1}/{len(waypoints)}: {wp.transform.location}")
             waypoints = helpers.get_town04_figure8_waypoints(world, lane_id=-2, waypoint_distance=3.0)
-            draw_permanent_waypoint_lines(world, waypoints)
+            draw_permanent_waypoint_lines(world, waypoints, color=carla.Color(0, 1, 0), thickness=0.5)
             
             while True:
                 control = compute_control(vehicle, wp, target_speed)
